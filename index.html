@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>政策通知看板 - smoon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card-bg: #ffffff;
+      --text: #1f2937;
+      --text-secondary: #6b7280;
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
+      --accent: #059669;
+      --accent-light: #ecfdf5;
+      --warning: #d97706;
+      --warning-light: #fffbeb;
+      --danger: #dc2626;
+      --border: #e5e7eb;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 0;
+      margin: 0;
+    }
+    header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      color: white;
+      padding: 48px 24px 64px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    header::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      background: var(--bg);
+      border-radius: 48px 48px 0 0;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+    header p {
+      opacity: 0.9;
+      font-size: 1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .container {
+      max-width: 1100px;
+      margin: -32px auto 48px;
+      padding: 0 16px;
+      position: relative;
+      z-index: 1;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    .stat-card .number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .stat-card .label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .card h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .badge-blue { background: var(--primary-light); color: var(--primary); }
+    .badge-green { background: var(--accent-light); color: var(--accent); }
+    .badge-yellow { background: var(--warning-light); color: var(--warning); }
+    .empty-state {
+      background: #f9fafb;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+    .timeline {
+      position: relative;
+      padding-left: 24px;
+    }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: var(--border);
+    }
+    .timeline-item {
+      position: relative;
+      padding-bottom: 24px;
+    }
+    .timeline-item:last-child { padding-bottom: 0; }
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: -20px;
+      top: 6px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid var(--card-bg);
+      box-shadow: 0 0 0 2px var(--primary-light);
+    }
+    .timeline-item .date {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .timeline-item .title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+      line-height: 1.5;
+    }
+    .timeline-item .meta {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .timeline-item .summary {
+      font-size: 0.875rem;
+      color: #4b5563;
+      margin-bottom: 10px;
+    }
+    .timeline-item .link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.875rem;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .timeline-item .link:hover { text-decoration: underline; }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .tag {
+      background: #f3f4f6;
+      color: #4b5563;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+    }
+    .province-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .province-card {
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .province-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+      background: white;
+    }
+    .province-card .province-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .province-card .province-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .province-card .province-status {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 500;
+    }
+    .province-card .province-date {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .province-card .province-summary {
+      font-size: 0.875rem;
+      color: #4b5563;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+    .province-card .link {
+      font-size: 0.875rem;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .province-card .link:hover { text-decoration: underline; }
+    .footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    .last-updated {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+    .section-intro {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    @media (max-width: 640px) {
+      header { padding: 32px 16px 48px; }
+      header h1 { font-size: 1.5rem; }
+      .container { margin-top: -24px; padding: 0 12px; }
+      .card { padding: 20px; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .province-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>政策通知看板</h1>
+    <p>春雨行动 · 国家重点研发计划 · 国家科技重大专项</p>
+  </header>
+
+  <div class="container">
+    <div class="last-updated">
+      <span>🕐</span>
+      <span>最后更新：2026-07-01 17:27</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="number">11</div>
+        <div class="label">过去12小时新消息</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">26</div>
+        <div class="label">累积通知</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">12</div>
+        <div class="label">精选汇总</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">13</div>
+        <div class="label">春雨行动库</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>
+        <span>⚡</span>
+        <span>过去 12 小时新消息</span>
+        <span class="badge badge-green">实时</span>
+      </h2>
+      <div class="section-intro">每日 8:00 / 20:00 自动检查，只展示过去 12 小时内发布的新通知。</div>
+      <div class="timeline">
+    <div class="timeline-item">
+      <div class="date">2026-06-30</div>
+      <div class="title">四川省六部门联合印发医疗器械临床创新成果转化“春雨行动”工作方案</div>
+      <div class="meta">来源：四川省药品监督管理局</div>
+      <div class="summary">省药监局会同省卫健委、科技厅、经信厅、省市场监管局、省经合局六部门联合发布工作方案，正式启动四川省“春雨行动”。</div>
+      <a class="link" href="http://yjj.sc.gov.cn/scyjj/gztz/2026/6/30/73288a58b4af4c6b91f8d460aef1bb1d.shtml" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">四川</span><span class="tag">官方发文</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-29</div>
+      <div class="title">湖南省药监局印发医疗器械创新成果转化“春雨行动”实施方案</div>
+      <div class="meta">来源：湖南省药品监督管理局</div>
+      <div class="summary">建立全链条协同创新服务体系，建设“湖南省医疗器械创新转化平台”，设四级分类标准和六项工作机制，到2028年底培育一批医工融合标志性产品。</div>
+      <a class="link" href="https://www.hunan.gov.cn/zqt/zcsd/202606/t20260629_34014967.html" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">湖南</span><span class="tag">官方发文</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-26</div>
+      <div class="title">福建省首个“春雨行动”成果落地——政企医携手让好创意变成产品</div>
+      <div class="meta">来源：中国医药报</div>
+      <div class="summary">福建省药监局首个支持项目成功转化，持续深化“春雨行动”，完善医疗器械创新服务生态。</div>
+      <a class="link" href="https://www.cnpharm.com/c/2026-06-26/1100304.shtml" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">福建</span><span class="tag">成果落地</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-26</div>
+      <div class="title">潍柴动力牵头的氢内燃机国家重点研发计划取得重大进展</div>
+      <div class="meta">来源：证券时报e公司</div>
+      <div class="summary">潍柴动力牵头承担的国内首个氢内燃机领域国家重点研发计划迎来里程碑式突破，最高有效热效率达当前国内外公开数据最高水平。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260626A09CWH00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家重点研发计划</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-25</div>
+      <div class="title">福建省全链护航加快医疗器械临床成果转化</div>
+      <div class="meta">来源：中国医药报</div>
+      <div class="summary">福建省药监局作为首批试点省份，出台实施方案，以“春雨行动”为抓手全面赋能临床创新。</div>
+      <a class="link" href="https://finance.sina.com.cn/jjxw/2026-06-25/doc-inieqnch2593299.shtml" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">福建</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-24</div>
+      <div class="title">中医药大学牵头获批国家科技重大专项课题</div>
+      <div class="meta">来源：青塔</div>
+      <div class="summary">江西中医药大学冯育林教授牵头申报的创新药物研发国家科技重大专项课题获批，专项资助经费1326万元。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260624A08XP200" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家科技重大专项</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-15</div>
+      <div class="title">近200项临床成果入库，山东“春雨行动”打通医疗器械成果转化快车道</div>
+      <div class="meta">来源：大众日报</div>
+      <div class="summary">山东在“春雨行动”中已入库近200项临床创新成果，推动威高集团等多家企业与医院达成合作协议。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260615A07ZE800" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">山东</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-12</div>
+      <div class="title">国家药监局副局长雷平赴甘肃调研高端医疗器械创新和“春雨行动”推进工作</div>
+      <div class="meta">来源：证券时报e公司</div>
+      <div class="summary">国家药监局副局长雷平赴甘肃兰州、武威等地调研，了解重离子治疗系统等产品创新研发及“春雨行动”推进落实情况。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260612A084E800" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">国家药监局</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-09</div>
+      <div class="title">内蒙古印发医疗器械临床创新成果转化“春雨行动”实施方案</div>
+      <div class="meta">来源：健康资讯天天看</div>
+      <div class="summary">内蒙古自治区药监局等四部门印发实施方案。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260609A03S8L00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">内蒙古</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-09</div>
+      <div class="title">济南开展医疗器械临床创新成果转化“春雨行动”专题调研</div>
+      <div class="meta">来源：大众日报</div>
+      <div class="summary">济南市市场监管局医药创新服务中心走进重点医疗器械生产企业，为企业送上“服务包”。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260609A06K3H00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">山东</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-01</div>
+      <div class="title">山东省四部门联合印发推进医疗器械临床创新成果转化“春雨行动”实施方案</div>
+      <div class="meta">来源：齐鲁网</div>
+      <div class="summary">山东省药监局等四部门联合印发实施方案，正式在全省启动“春雨行动”。</div>
+      <a class="link" href="https://news.iqilu.com/shandong/yaowen/2026/0601/5918495.shtml" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">山东</span></div>
+    </div>
+    </div>
+    </div>
+
+    <div class="card">
+      <h2>
+        <span>📚</span>
+        <span>累积通知</span>
+        <span class="badge badge-blue">全部</span>
+      </h2>
+      <div class="section-intro">按发布时间倒序排列，收录与关键词相关的所有历史信息。</div>
+      <div class="timeline">
+    <div class="timeline-item">
+      <div class="date">2026-06-01</div>
+      <div class="title">山东省四部门联合印发推进医疗器械临床创新成果转化“春雨行动”实施方案</div>
+      <div class="meta">来源：齐鲁网</div>
+      <div class="summary">山东省药监局等四部门联合印发实施方案，正式在全省启动“春雨行动”。</div>
+      <a class="link" href="https://news.iqilu.com/shandong/yaowen/2026/0601/5918495.shtml" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">山东</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-25</div>
+      <div class="title">福建省全链护航加快医疗器械临床成果转化</div>
+      <div class="meta">来源：中国医药报</div>
+      <div class="summary">福建省药监局作为首批试点省份，出台实施方案，以“春雨行动”为抓手全面赋能临床创新。</div>
+      <a class="link" href="https://finance.sina.com.cn/jjxw/2026-06-25/doc-inieqnch2593299.shtml" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">福建</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-26</div>
+      <div class="title">福建省首个“春雨行动”成果落地——政企医携手让好创意变成产品</div>
+      <div class="meta">来源：中国医药报</div>
+      <div class="summary">福建省药监局首个支持项目成功转化，持续深化“春雨行动”。</div>
+      <a class="link" href="https://www.cnpharm.com/c/2026-06-26/1100304.shtml" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">福建</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-29</div>
+      <div class="title">湖南省药监局印发医疗器械创新成果转化“春雨行动”实施方案</div>
+      <div class="meta">来源：湖南省药品监督管理局</div>
+      <div class="summary">建立全链条协同创新服务体系，建设创新转化平台，设四级分类标准和六项工作机制。</div>
+      <a class="link" href="https://www.hunan.gov.cn/zqt/zcsd/202606/t20260629_34014967.html" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">湖南</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-30</div>
+      <div class="title">四川省六部门联合印发医疗器械临床创新成果转化“春雨行动”工作方案</div>
+      <div class="meta">来源：四川省药品监督管理局</div>
+      <div class="summary">省药监局会同省卫健委、科技厅、经信厅、省市场监管局、省经合局六部门联合发布工作方案。</div>
+      <a class="link" href="http://yjj.sc.gov.cn/scyjj/gztz/2026/6/30/73288a58b4af4c6b91f8d460aef1bb1d.shtml" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">四川</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-26</div>
+      <div class="title">潍柴动力牵头的氢内燃机国家重点研发计划取得重大进展</div>
+      <div class="meta">来源：证券时报e公司</div>
+      <div class="summary">潍柴动力牵头承担的国内首个氢内燃机领域国家重点研发计划迎来里程碑式突破，最高有效热效率达当前国内外公开数据最高水平。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260626A09CWH00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家重点研发计划</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-24</div>
+      <div class="title">中医药大学牵头获批国家科技重大专项课题</div>
+      <div class="meta">来源：青塔</div>
+      <div class="summary">江西中医药大学冯育林教授牵头申报的创新药物研发国家科技重大专项课题获批，专项资助经费1326万元。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260624A08XP200" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家科技重大专项</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-15</div>
+      <div class="title">近200项临床成果入库，山东“春雨行动”打通医疗器械成果转化快车道</div>
+      <div class="meta">来源：大众日报</div>
+      <div class="summary">山东在“春雨行动”中已入库近200项临床创新成果，推动多家企业与医院达成合作协议。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260615A07ZE800" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">山东</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-12</div>
+      <div class="title">国家药监局副局长雷平赴甘肃调研高端医疗器械创新和“春雨行动”推进工作</div>
+      <div class="meta">来源：证券时报e公司</div>
+      <div class="summary">国家药监局副局长雷平调研甘肃兰州、武威等地，了解“春雨行动”推进落实情况。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260612A084E800" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">国家药监局</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-09</div>
+      <div class="title">内蒙古印发医疗器械临床创新成果转化“春雨行动”实施方案</div>
+      <div class="meta">来源：健康资讯天天看</div>
+      <div class="summary">内蒙古自治区药监局等四部门印发《内蒙古自治区医疗器械临床创新成果转化“春雨行动”实施方案》。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260609A03S8L00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">内蒙古</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-09</div>
+      <div class="title">济南开展医疗器械临床创新成果转化“春雨行动”</div>
+      <div class="meta">来源：大众日报</div>
+      <div class="summary">济南市市场监管局医药创新服务中心走进重点医疗器械生产企业开展专题调研。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260609A06K3H00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">山东</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-31</div>
+      <div class="title">985牵头！国家重点研发计划项目启动</div>
+      <div class="meta">来源：青塔</div>
+      <div class="summary">大连理工大学牵头承担的“十四五”国家重点研发计划项目启动。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260531A075Y500" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家重点研发计划</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-29</div>
+      <div class="title">山东启动医疗器械临床创新成果转化“春雨行动”</div>
+      <div class="meta">来源：新黄河</div>
+      <div class="summary">山东省药监局等四部门联合印发实施方案，在全省启动“春雨行动”。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260529A070MR00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">山东</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-27</div>
+      <div class="title">成都中医药大学牵头国家科技重大专项 中西医联合科研攻关艾滋病</div>
+      <div class="meta">来源：封面新闻</div>
+      <div class="summary">新发突发与重大传染病防控国家科技重大专项项目正式启动。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260527A08LZN00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家科技重大专项</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-26</div>
+      <div class="title">“双一流”大学牵头获批国家科技重大专项</div>
+      <div class="meta">来源：软科</div>
+      <div class="summary">成都中医药大学牵头的国家科技重大专项项目启动会召开。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260526A096D900" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家科技重大专项</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-25</div>
+      <div class="title">国家科技重大专项启动！就在福州这家医院</div>
+      <div class="meta">来源：福建卫生报</div>
+      <div class="summary">“癌症、心脑血管、呼吸和代谢性疾病防治研究国家科技重大专项”项目启动会在福州召开。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260525A0A88J00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家科技重大专项</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-14</div>
+      <div class="title">历史性突破！新疆医疗卫生领域首次牵头国家科技重大专项</div>
+      <div class="meta">来源：央广网</div>
+      <div class="summary">新疆维吾尔自治区人民医院牵头申报的国家科技重大专项项目获批。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260514A08ZSW00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家科技重大专项</span><span class="tag">新疆</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-07</div>
+      <div class="title">宁波大学附属第一医院牵头项目获批国家科技重大专项</div>
+      <div class="meta">来源：教育热资讯</div>
+      <div class="summary">四大慢病防治研究国家科技重大专项项目获批。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260507A08G5X00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家科技重大专项</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-07</div>
+      <div class="title">八部门：创新药物研发国家科技重大专项支持儿童高发疾病的创新品种</div>
+      <div class="meta">来源：每日经济新闻</div>
+      <div class="summary">国家卫生健康委等8部门公布实施意见，创新药物研发国家科技重大专项支持儿童用药研发。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260507A05PQA00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家科技重大专项</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-04-30</div>
+      <div class="title">科技部国际合作司关于发布国家重点研发计划“政府间国际科技创新合作”重点专项2026年度第二批联合研发项目申报指南</div>
+      <div class="meta">来源：service.most.gov.cn</div>
+      <div class="summary">发布“政府间国际科技创新合作”重点专项2026年度第二批联合研发项目申报指南。</div>
+      <a class="link" href="https://service.most.gov.cn/kjjh_tztg_all/20260430/5824.html" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家重点研发计划</span><span class="tag">科技部</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-04-28</div>
+      <div class="title">国家科技重大专项乳腺癌防治项目在沪启动</div>
+      <div class="meta">来源：上观新闻</div>
+      <div class="summary">国家科技重大专项“基于类人脑的乳腺癌精准预防体系建立和早期干预策略”项目启动。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260428A07BWD00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家科技重大专项</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-01-23</div>
+      <div class="title">67个成果、108个单位！2025年度国家重点研发计划高新技术成果产业化试点名单公布</div>
+      <div class="meta">来源：工信微报</div>
+      <div class="summary">工业和信息化部公布2025年度国家重点研发计划高新技术成果产业化试点名单。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20260123A05GL000" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家重点研发计划</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2025-12-04</div>
+      <div class="title">国家药监局：推动“春雨行动”从试点省份探索转向全国常态化运行</div>
+      <div class="meta">来源：界面新闻</div>
+      <div class="summary">推进医疗器械临床研究成果转化暨“春雨行动”工作推进会在广州召开。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20251204A06IQJ00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">国家药监局</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2025-10-29</div>
+      <div class="title">新一代人工智能国家科技重大专项2025年度第一批项目申报指南</div>
+      <div class="meta">来源：北京日报客户端</div>
+      <div class="summary">关于发布新一代人工智能国家科技重大专项2025年度第一批项目申报指南的通知。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20251029A06G2B00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家科技重大专项</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2025-07-28</div>
+      <div class="title">国家重点研发计划“大规模盐穴储氢”主体工程开工建设</div>
+      <div class="meta">来源：IT之家</div>
+      <div class="summary">国家重点研发计划“氢能技术”重点专项主体工程在江苏常州开工。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20250728A02K8500" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家重点研发计划</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2025-06-10</div>
+      <div class="title">国家重点研发计划高新技术成果产业化试点工作启动</div>
+      <div class="meta">来源：界面新闻</div>
+      <div class="summary">工业和信息化部部署开展国家重点研发计划高新技术成果产业化试点工作。</div>
+      <a class="link" href="https://view.inews.qq.com/a/20250610A04K3U00" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家重点研发计划</span></div>
+    </div>
+    </div>
+    </div>
+
+    <div class="card">
+      <h2>
+        <span>🏛️</span>
+        <span>精选汇总</span>
+        <span class="badge badge-yellow">官网</span>
+      </h2>
+      <div class="section-intro">汇总国家或地方卫健委、工信部、科技部、药监局等官方网站发布的政策通知。</div>
+      <div class="timeline">
+    <div class="timeline-item">
+      <div class="date">2026-06-26</div>
+      <div class="title">福建省首个“春雨行动”成果落地</div>
+      <div class="meta">来源：福建省药品监督管理局</div>
+      <div class="summary">福建省药监局首个支持项目成功转化落地，持续深化“春雨行动”工作。</div>
+      <a class="link" href="https://www.cnpharm.com/c/2026-06-26/1100304.shtml" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">福建</span><span class="tag">官网</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-29</div>
+      <div class="title">湖南省药监局印发医疗器械创新成果转化“春雨行动”实施方案</div>
+      <div class="meta">来源：湖南省药品监督管理局</div>
+      <div class="summary">省药监局发布实施方案，建设创新转化平台，设四级分类标准和六项工作机制，计划到2028年培育医工融合标志性产品。</div>
+      <a class="link" href="https://www.hunan.gov.cn/zqt/zcsd/202606/t20260629_34014967.html" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">湖南</span><span class="tag">官网</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-06-30</div>
+      <div class="title">四川省六部门联合印发医疗器械临床创新成果转化“春雨行动”工作方案</div>
+      <div class="meta">来源：四川省药品监督管理局等六部门</div>
+      <div class="summary">六部门联合发布方案，落实国家药监局“春雨行动”部署，在全省启动医疗器械临床创新成果转化工作。</div>
+      <a class="link" href="http://yjj.sc.gov.cn/scyjj/gztz/2026/6/30/73288a58b4af4c6b91f8d460aef1bb1d.shtml" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">四川</span><span class="tag">官网</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-07</div>
+      <div class="title">上海市药品监督管理局等关于开展医疗器械临床创新成果转化“春雨行动”的实施方案</div>
+      <div class="meta">来源：上海市药品监督管理局</div>
+      <div class="summary">沪药监械注〔2026〕69号，三部门联合发文，建立“征集筛选—对接匹配—辅导培育—转化落地”工作机制，每年组织两次评审会。</div>
+      <a class="link" href="https://yjj.sh.gov.cn/zx-ylqx/20260511/b55d3cca020c42e9932231182c8efc30.html" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">上海</span><span class="tag">官网</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-04-30</div>
+      <div class="title">科技部国际合作司关于发布国家重点研发计划“政府间国际科技创新合作”重点专项2026年度第二批联合研发项目申报指南的通知</div>
+      <div class="meta">来源：科学技术部</div>
+      <div class="summary">发布“政府间国际科技创新合作”重点专项2026年度第二批联合研发项目申报指南。</div>
+      <a class="link" href="https://service.most.gov.cn/kjjh_tztg_all/20260430/5824.html" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">国家重点研发计划</span><span class="tag">科技部</span><span class="tag">官网</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-04-20</div>
+      <div class="title">海南省推进医疗器械临床创新成果转化“春雨行动”实施方案</div>
+      <div class="meta">来源：海南省药品监督管理局</div>
+      <div class="summary">三部门联合印发，在海南省药品智慧监管平台开设“春雨行动”项目申报专栏，构建全链条协同创新服务体系。</div>
+      <a class="link" href="https://amr.hainan.gov.cn/himpa/xxgk/zfwj/bmwj/202604/t20260424_4065047.html" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">海南</span><span class="tag">官网</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-26</div>
+      <div class="title">山东省推进医疗器械临床创新成果转化“春雨行动”实施方案</div>
+      <div class="meta">来源：山东省药品监督管理局等四部门</div>
+      <div class="summary">四部门联合印发，搭建全省统一项目申报系统，已入库近200项临床创新成果。</div>
+      <a class="link" href="http://www.sd.xinhuanet.com/20260616/a952793c837b4f7c920f32c21fa70e67/c.html" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">山东</span><span class="tag">官网</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-15</div>
+      <div class="title">重庆市推进医疗器械临床创新成果转化“春雨行动”实施方案</div>
+      <div class="meta">来源：重庆市药品监督管理局等六部门</div>
+      <div class="summary">六部门联合发文，建立项目资源库、医企对接和成果转化长效机制。</div>
+      <a class="link" href="https://yaojianju.cq.gov.cn/zwgk_n2104/zfxxgkml/zcwjn2104/qtwjn2104/202605/t20260515_15678633_wap.html" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">重庆</span><span class="tag">官网</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-12</div>
+      <div class="title">北京市药品监督管理局等关于开展医疗器械临床创新成果转化“春雨行动”的实施方案</div>
+      <div class="meta">来源：北京市药品监督管理局等五部门</div>
+      <div class="summary">五部门联合发文，明确市药监局、科委、卫生健康委、经信局等分工，开通线上申报系统。</div>
+      <a class="link" href="https://yjj.beijing.gov.cn/yjj/zwgk20/tz7/744008062/index.html" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">北京</span><span class="tag">官网</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-14</div>
+      <div class="title">安徽省药品监督管理局关于开展医疗器械临床创新成果转化“春雨行动”的实施方案</div>
+      <div class="meta">来源：安徽省药品监督管理局</div>
+      <div class="summary">皖药监许可函〔2026〕223号，明确医疗机构、企业/投资人实施主体，分宣贯、筛选匹配、产品培育三阶段推进。</div>
+      <a class="link" href="https://mpa.ah.gov.cn/public/4140867/123369321.html" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">安徽</span><span class="tag">官网</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2026-05-08</div>
+      <div class="title">辽宁省药品监督管理局关于开展医疗器械临床创新创意项目征集的通知</div>
+      <div class="meta">来源：辽宁省药品监督管理局</div>
+      <div class="summary">辽药监械〔2026〕32号，依托省药监局官网搭建“辽宁省医疗器械临床创新创意项目征集平台”，成立“春雨行动”工作领导小组。</div>
+      <a class="link" href="https://ypjg.ln.gov.cn/ypjg/zwgk/gztz/ylqx/2026050810440027488/index.shtml" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">辽宁</span><span class="tag">官网</span></div>
+    </div>
+    
+    <div class="timeline-item">
+      <div class="date">2025-07-15</div>
+      <div class="title">广东省药品监督管理局关于开展“春雨行动”推进医疗器械临床研究成果转化工作的实施方案</div>
+      <div class="meta">来源：广东省药品监督管理局</div>
+      <div class="summary">以“四个一”落实春雨行动：一个方案、一个标准、一套机制、一个平台，建立临床研究成果项目收集筛选机制。</div>
+      <a class="link" href="https://mpa.gd.gov.cn/xwdt/xwfbpt/mtzx/content/post_4744721.html" target="_blank" rel="noopener">查看原文 →</a>
+      <div class="tags"><span class="tag">春雨行动</span><span class="tag">广东</span><span class="tag">官网</span></div>
+    </div>
+    </div>
+    </div>
+
+    <div class="card">
+      <h2>
+        <span>🌧️</span>
+        <span>春雨行动库</span>
+        <span class="badge badge-green">省份</span>
+      </h2>
+      <div class="section-intro">收录已发布“春雨行动”实施方案或相关工作进展的省份。</div>
+      <div class="province-grid">
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">福建</span>
+            <span class="province-status">已发布实施方案（首批试点）</span>
+          </div>
+          <div class="province-date">2025-07-01</div>
+          <div class="province-summary">首批试点省份，2025年6月出台实施方案，2026年6月首个成果落地。</div>
+          <a class="link" href="https://finance.sina.com.cn/jjxw/2026-06-25/doc-inieqnch2593299.shtml" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">湖南</span>
+            <span class="province-status">已发布实施方案</span>
+          </div>
+          <div class="province-date">2026-06-26</div>
+          <div class="province-summary">省药监局发布实施方案，建设创新转化平台，建立四级分类标准和六项工作机制。</div>
+          <a class="link" href="https://www.hunan.gov.cn/zqt/zcsd/202606/t20260629_34014967.html" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">四川</span>
+            <span class="province-status">已发布实施方案</span>
+          </div>
+          <div class="province-date">2026-06-25</div>
+          <div class="province-summary">六部门联合发布工作方案，正式在全省启动医疗器械临床创新成果转化“春雨行动”。</div>
+          <a class="link" href="http://yjj.sc.gov.cn/scyjj/gztz/2026/6/30/73288a58b4af4c6b91f8d460aef1bb1d.shtml" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">广东</span>
+            <span class="province-status">已发布实施方案</span>
+          </div>
+          <div class="province-date">2025-07-15</div>
+          <div class="province-summary">省药监局制定“春雨行动”实施方案，以“四个一”推进医疗器械临床研究成果转化。</div>
+          <a class="link" href="https://mpa.gd.gov.cn/xwdt/xwfbpt/mtzx/content/post_4744721.html" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">山东</span>
+            <span class="province-status">已发布实施方案</span>
+          </div>
+          <div class="province-date">2026-05-26</div>
+          <div class="province-summary">四部门联合印发实施方案，搭建全省统一项目申报系统，已入库近200项临床创新成果。</div>
+          <a class="link" href="http://www.sd.xinhuanet.com/20260616/a952793c837b4f7c920f32c21fa70e67/c.html" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">海南</span>
+            <span class="province-status">已发布实施方案</span>
+          </div>
+          <div class="province-date">2026-04-20</div>
+          <div class="province-summary">三部门联合印发实施方案，在药品智慧监管平台开设项目申报专栏。</div>
+          <a class="link" href="https://amr.hainan.gov.cn/himpa/xxgk/zfwj/bmwj/202604/t20260424_4065047.html" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">上海</span>
+            <span class="province-status">已发布实施方案</span>
+          </div>
+          <div class="province-date">2026-05-07</div>
+          <div class="province-summary">三部门联合发文，建立全链条工作机制，每年5月和11月组织两次评审会。</div>
+          <a class="link" href="https://yjj.sh.gov.cn/zx-ylqx/20260511/b55d3cca020c42e9932231182c8efc30.html" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">北京</span>
+            <span class="province-status">已发布实施方案</span>
+          </div>
+          <div class="province-date">2026-05-12</div>
+          <div class="province-summary">五部门联合发文，明确各部门分工并开通线上申报系统。</div>
+          <a class="link" href="https://yjj.beijing.gov.cn/yjj/zwgk20/tz7/744008062/index.html" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">重庆</span>
+            <span class="province-status">已发布实施方案</span>
+          </div>
+          <div class="province-date">2026-05-11</div>
+          <div class="province-summary">六部门联合发文，建立项目资源库和医企对接长效机制。</div>
+          <a class="link" href="https://yaojianju.cq.gov.cn/zwgk_n2104/zfxxgkml/zcwjn2104/qtwjn2104/202605/t20260515_15678633_wap.html" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">安徽</span>
+            <span class="province-status">已发布实施方案</span>
+          </div>
+          <div class="province-date">2026-05-14</div>
+          <div class="province-summary">省药监局发布实施方案，明确医疗机构、企业/投资人实施主体，分三阶段推进。</div>
+          <a class="link" href="https://mpa.ah.gov.cn/public/4140867/123369321.html" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">辽宁</span>
+            <span class="province-status">已发布实施方案</span>
+          </div>
+          <div class="province-date">2026-05-08</div>
+          <div class="province-summary">省药监局发布项目征集通知，搭建省级项目征集平台并成立工作领导小组。</div>
+          <a class="link" href="https://ypjg.ln.gov.cn/ypjg/zwgk/gztz/ylqx/2026050810440027488/index.shtml" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">内蒙古</span>
+            <span class="province-status">已发布实施方案</span>
+          </div>
+          <div class="province-date">2026-06-09</div>
+          <div class="province-summary">自治区药监局等四部门印发“春雨行动”实施方案。</div>
+          <a class="link" href="https://view.inews.qq.com/a/20260609A03S8L00" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        
+        <div class="province-card">
+          <div class="province-header">
+            <span class="province-name">甘肃</span>
+            <span class="province-status">国家药监局调研</span>
+          </div>
+          <div class="province-date">2026-06-12</div>
+          <div class="province-summary">国家药监局副局长雷平赴甘肃调研高端医疗器械创新和“春雨行动”推进工作。</div>
+          <a class="link" href="https://view.inews.qq.com/a/20260612A084E800" target="_blank" rel="noopener">查看原文 →</a>
+        </div>
+        </div>
+    </div>
+
+    <div class="card">
+      <h2>
+        <span>🔭</span>
+        <span>重点监控官网</span>
+      </h2>
+      <div class="tags"><span class="tag">国家卫健委 nhc.gov.cn</span><span class="tag">国家工信部 miit.gov.cn</span><span class="tag">国家科技部 service.most.gov.cn</span><span class="tag">国家药监局 nmpa.gov.cn</span><span class="tag">各省份药监局</span></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>由多多维护 · 每日 8:00 / 20:00 自动更新</p>
+  </div>
+</body>
+</html>
