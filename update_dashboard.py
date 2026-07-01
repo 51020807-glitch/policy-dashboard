@@ -21,11 +21,17 @@ def build_html(data: dict) -> str:
     official_count = len(official_items)
     province_count = len(chunyu_items)
 
-    recent_html = build_recent_section(recent_items, data)
+    recent_html = build_timeline_section(recent_items)
     all_html = build_timeline_section(all_items)
     official_html = build_timeline_section(official_items)
     chunyu_html = build_chunyu_section(chunyu_items)
     sites_html = build_sites_section(monitored_sites)
+
+    # 预计算模板变量
+    rw = data.get("recentWindow", {})
+    rw_start = rw.get("start", "")
+    rw_end = rw.get("end", "")
+    next_check = data.get("nextCheck", "")
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -44,11 +50,11 @@ def build_html(data: dict) -> str:
       --text-secondary: #6b7280;
       --primary: #2563eb;
       --primary-light: #eff6ff;
+      --primary-dark: #1d4ed8;
       --accent: #059669;
       --accent-light: #ecfdf5;
       --warning: #d97706;
       --warning-light: #fffbeb;
-      --danger: #dc2626;
       --border: #e5e7eb;
       --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
       --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
@@ -59,13 +65,11 @@ def build_html(data: dict) -> str:
       background: var(--bg);
       color: var(--text);
       line-height: 1.6;
-      padding: 0;
-      margin: 0;
     }}
     header {{
       background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
       color: white;
-      padding: 48px 24px 64px;
+      padding: 40px 24px 56px;
       text-align: center;
       position: relative;
       overflow: hidden;
@@ -73,79 +77,141 @@ def build_html(data: dict) -> str:
     header::after {{
       content: "";
       position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 48px;
+      bottom: 0; left: 0; right: 0;
+      height: 40px;
       background: var(--bg);
-      border-radius: 48px 48px 0 0;
+      border-radius: 40px 40px 0 0;
     }}
     header h1 {{
       font-size: 2rem;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       letter-spacing: -0.5px;
     }}
     header p {{
-      opacity: 0.9;
-      font-size: 1rem;
-      max-width: 600px;
-      margin: 0 auto;
+      opacity: 0.85;
+      font-size: 0.95rem;
     }}
+
     .container {{
       max-width: 1100px;
-      margin: -32px auto 48px;
+      margin: -28px auto 40px;
       padding: 0 16px;
       position: relative;
       z-index: 1;
     }}
-    .stats {{
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 16px;
-      margin-bottom: 32px;
-    }}
-    .stat-card {{
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: var(--shadow);
-      text-align: center;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }}
-    .stat-card:hover {{
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-lg);
-    }}
-    .stat-card .number {{
-      font-size: 2rem;
-      font-weight: 700;
+
+    /* ── 更新时间 ── */
+    .last-updated {{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-light);
       color: var(--primary);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 20px;
+    }}
+
+    /* ── 顶部四个卡片标签 ── */
+    .tab-bar {{
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }}
+    .tab-card {{
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 16px 18px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      user-select: none;
+      box-shadow: var(--shadow);
+      position: relative;
+    }}
+    .tab-card:hover {{
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
+      border-color: #93c5fd;
+    }}
+    .tab-card.active {{
+      border-color: var(--primary);
+      background: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.18), var(--shadow-lg);
+      transform: translateY(-3px);
+    }}
+    .tab-card .tab-icon {{
+      font-size: 1.6rem;
       margin-bottom: 4px;
     }}
-    .stat-card .label {{
-      font-size: 0.875rem;
-      color: var(--text-secondary);
+    .tab-card .tab-number {{
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
     }}
-    .card {{
+    .tab-card.active .tab-number {{
+      color: var(--primary);
+    }}
+    .tab-card .tab-label {{
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      font-weight: 400;
+    }}
+    .tab-card .tab-arrow {{
+      display: none;
+      font-size: 0.7rem;
+      opacity: 0.5;
+      margin-top: 4px;
+    }}
+    .tab-card.active .tab-arrow {{
+      display: block;
+      color: var(--primary);
+    }}
+
+    /* ── 内容面板 ── */
+    .panel {{
+      display: none;
       background: var(--card-bg);
       border-radius: 16px;
       box-shadow: var(--shadow);
-      padding: 24px;
-      margin-bottom: 24px;
+      padding: 28px 24px;
+      animation: fadeSlideIn 0.35s ease;
     }}
-    .card h2 {{
-      font-size: 1.25rem;
+    .panel.active {{
+      display: block;
+    }}
+    @keyframes fadeSlideIn {{
+      from {{ opacity: 0; transform: translateY(8px); }}
+      to   {{ opacity: 1; transform: translateY(0); }}
+    }}
+    .panel h2 {{
+      font-size: 1.3rem;
       font-weight: 700;
-      margin-bottom: 16px;
+      margin-bottom: 6px;
       display: flex;
       align-items: center;
       gap: 8px;
     }}
+    .panel .panel-meta {{
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }}
+
+    /* ── 徽章 ── */
     .badge {{
       display: inline-flex;
       align-items: center;
-      padding: 4px 10px;
+      padding: 3px 10px;
       border-radius: 999px;
       font-size: 0.75rem;
       font-weight: 500;
@@ -153,24 +219,30 @@ def build_html(data: dict) -> str:
     .badge-blue {{ background: var(--primary-light); color: var(--primary); }}
     .badge-green {{ background: var(--accent-light); color: var(--accent); }}
     .badge-yellow {{ background: var(--warning-light); color: var(--warning); }}
+
+    /* ── 空状态 ── */
     .empty-state {{
       background: #f9fafb;
       border: 1px dashed var(--border);
       border-radius: 12px;
-      padding: 32px;
+      padding: 40px 20px;
       text-align: center;
       color: var(--text-secondary);
     }}
+    .empty-state .empty-icon {{
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }}
+
+    /* ── 时间线 ── */
     .timeline {{
       position: relative;
-      padding-left: 24px;
+      padding-left: 28px;
     }}
     .timeline::before {{
       content: "";
       position: absolute;
-      left: 8px;
-      top: 8px;
-      bottom: 8px;
+      left: 10px; top: 8px; bottom: 8px;
       width: 2px;
       background: var(--border);
     }}
@@ -182,22 +254,17 @@ def build_html(data: dict) -> str:
     .timeline-item::before {{
       content: "";
       position: absolute;
-      left: -20px;
-      top: 6px;
-      width: 10px;
-      height: 10px;
+      left: -22px; top: 6px;
+      width: 10px; height: 10px;
       border-radius: 50%;
       background: var(--primary);
       border: 2px solid var(--card-bg);
       box-shadow: 0 0 0 2px var(--primary-light);
     }}
     .timeline-item .date {{
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: var(--text-secondary);
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      margin-bottom: 2px;
     }}
     .timeline-item .title {{
       font-size: 1rem;
@@ -207,14 +274,14 @@ def build_html(data: dict) -> str:
       line-height: 1.5;
     }}
     .timeline-item .meta {{
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: var(--text-secondary);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }}
     .timeline-item .summary {{
       font-size: 0.875rem;
       color: #4b5563;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }}
     .timeline-item .link {{
       display: inline-flex;
@@ -224,25 +291,28 @@ def build_html(data: dict) -> str:
       color: var(--primary);
       text-decoration: none;
       font-weight: 500;
+      transition: color 0.15s;
     }}
-    .timeline-item .link:hover {{ text-decoration: underline; }}
+    .timeline-item .link:hover {{ color: var(--primary-dark); text-decoration: underline; }}
     .tags {{
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
       margin-top: 8px;
     }}
     .tag {{
       background: #f3f4f6;
       color: #4b5563;
-      padding: 4px 10px;
+      padding: 3px 9px;
       border-radius: 999px;
       font-size: 0.75rem;
     }}
+
+    /* ── 春雨行动省份网格 ── */
     .province-grid {{
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 16px;
+      gap: 14px;
     }}
     .province-card {{
       background: #f9fafb;
@@ -260,10 +330,10 @@ def build_html(data: dict) -> str:
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }}
     .province-card .province-name {{
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 700;
       color: var(--text);
     }}
@@ -276,61 +346,65 @@ def build_html(data: dict) -> str:
       font-weight: 500;
     }}
     .province-card .province-date {{
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: var(--text-secondary);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }}
     .province-card .province-summary {{
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: #4b5563;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       line-height: 1.5;
     }}
     .province-card .link {{
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: var(--primary);
       text-decoration: none;
       font-weight: 500;
     }}
     .province-card .link:hover {{ text-decoration: underline; }}
+
+    /* ── 监控站点区域 ── */
+    .sites-card {{
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 20px 24px;
+      margin-top: 16px;
+    }}
+    .sites-card h3 {{
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }}
+
+    /* ── 页脚 ── */
     .footer {{
       text-align: center;
       padding: 24px;
       color: var(--text-secondary);
-      font-size: 0.875rem;
+      font-size: 0.85rem;
     }}
-    .last-updated {{
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--primary-light);
-      color: var(--primary);
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 0.875rem;
-      font-weight: 500;
-      margin-bottom: 16px;
-    }}
-    .section-intro {{
-      font-size: 0.875rem;
-      color: var(--text-secondary);
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }}
+
+    /* ── 响应式 ── */
     @media (max-width: 640px) {{
-      header {{ padding: 32px 16px 48px; }}
-      header h1 {{ font-size: 1.5rem; }}
-      .container {{ margin-top: -24px; padding: 0 12px; }}
-      .card {{ padding: 20px; }}
-      .stats {{ grid-template-columns: repeat(2, 1fr); }}
+      header {{ padding: 28px 16px 44px; }}
+      header h1 {{ font-size: 1.4rem; }}
+      .container {{ margin-top: -22px; padding: 0 12px; }}
+      .tab-bar {{ grid-template-columns: repeat(2, 1fr); gap: 8px; }}
+      .tab-card {{ padding: 14px 10px 12px; }}
+      .tab-card .tab-number {{ font-size: 1.4rem; }}
+      .tab-card .tab-label {{ font-size: 0.78rem; }}
+      .panel {{ padding: 20px 16px; }}
       .province-grid {{ grid-template-columns: 1fr; }}
+      .timeline {{ padding-left: 22px; }}
     }}
   </style>
 </head>
 <body>
   <header>
-    <h1>政策通知看板</h1>
+    <h1>📋 政策通知看板</h1>
     <p>春雨行动 · 国家重点研发计划 · 国家科技重大专项</p>
   </header>
 
@@ -340,122 +414,147 @@ def build_html(data: dict) -> str:
       <span>最后更新：{data.get('lastUpdated', '')}</span>
     </div>
 
-    <div class="stats">
-      <div class="stat-card">
-        <div class="number">{recent_count}</div>
-        <div class="label">过去12小时新消息</div>
+    <!-- 四个可点击卡片 -->
+    <div class="tab-bar">
+      <div class="tab-card active" data-tab="recent" onclick="switchTab('recent')">
+        <div class="tab-icon">⚡</div>
+        <div class="tab-number">{recent_count}</div>
+        <div class="tab-label">过去12小时新消息</div>
+        <div class="tab-arrow">▼</div>
       </div>
-      <div class="stat-card">
-        <div class="number">{total_count}</div>
-        <div class="label">累积通知</div>
+      <div class="tab-card" data-tab="all" onclick="switchTab('all')">
+        <div class="tab-icon">📚</div>
+        <div class="tab-number">{total_count}</div>
+        <div class="tab-label">累积通知</div>
+        <div class="tab-arrow">▼</div>
       </div>
-      <div class="stat-card">
-        <div class="number">{official_count}</div>
-        <div class="label">精选汇总</div>
+      <div class="tab-card" data-tab="official" onclick="switchTab('official')">
+        <div class="tab-icon">🏛️</div>
+        <div class="tab-number">{official_count}</div>
+        <div class="tab-label">精选汇总</div>
+        <div class="tab-arrow">▼</div>
       </div>
-      <div class="stat-card">
-        <div class="number">{province_count}</div>
-        <div class="label">春雨行动库</div>
+      <div class="tab-card" data-tab="chunyu" onclick="switchTab('chunyu')">
+        <div class="tab-icon">🌧️</div>
+        <div class="tab-number">{province_count}</div>
+        <div class="tab-label">春雨行动库</div>
+        <div class="tab-arrow">▼</div>
       </div>
     </div>
 
-    <div class="card">
+    <!-- 面板 1：过去12小时新消息 -->
+    <div id="panel-recent" class="panel active">
       <h2>
         <span>⚡</span>
         <span>过去 12 小时新消息</span>
         <span class="badge badge-green">实时</span>
       </h2>
-      <div class="section-intro">每日 8:00 / 20:00 自动检查，只展示过去 12 小时内发布的新通知。</div>
-      {recent_html}
+      <div class="panel-meta">{rw_start} — {rw_end} | 下次检查：{next_check}</div>
+      {recent_html if recent_items else '<div class="empty-state"><div class="empty-icon">📭</div><p>过去 12 小时内暂未发现相关新政策通知</p></div>'}
     </div>
 
-    <div class="card">
+    <!-- 面板 2：累积通知 -->
+    <div id="panel-all" class="panel">
       <h2>
         <span>📚</span>
         <span>累积通知</span>
         <span class="badge badge-blue">全部</span>
       </h2>
-      <div class="section-intro">按发布时间倒序排列，收录与关键词相关的所有历史信息。</div>
-      {all_html}
+      <div class="panel-meta">共收录 {total_count} 条历史记录，按发布时间倒序排列</div>
+      {all_html if all_items else '<div class="empty-state"><div class="empty-icon">📭</div><p>暂无累积通知</p></div>'}
     </div>
 
-    <div class="card">
+    <!-- 面板 3：精选汇总 -->
+    <div id="panel-official" class="panel">
       <h2>
         <span>🏛️</span>
         <span>精选汇总</span>
         <span class="badge badge-yellow">官网</span>
       </h2>
-      <div class="section-intro">汇总国家或地方卫健委、工信部、科技部、药监局等官方网站发布的政策通知。</div>
-      {official_html}
+      <div class="panel-meta">汇总国家/地方卫健委、工信部、科技部、药监局等官方网站发布的政策通知</div>
+      {official_html if official_items else '<div class="empty-state"><div class="empty-icon">📭</div><p>暂无官网消息</p></div>'}
     </div>
 
-    <div class="card">
+    <!-- 面板 4：春雨行动库 -->
+    <div id="panel-chunyu" class="panel">
       <h2>
         <span>🌧️</span>
         <span>春雨行动库</span>
         <span class="badge badge-green">省份</span>
       </h2>
-      <div class="section-intro">收录已发布“春雨行动”实施方案或相关工作进展的省份。</div>
-      {chunyu_html}
+      <div class="panel-meta">已发布"春雨行动"实施方案或相关工作进展的省份，共 {province_count} 个</div>
+      {chunyu_html if chunyu_items else '<div class="empty-state"><div class="empty-icon">📭</div><p>暂无省份入库</p></div>'}
     </div>
 
-    <div class="card">
-      <h2>
-        <span>🔭</span>
-        <span>重点监控官网</span>
-      </h2>
+    <!-- 监控站点（始终显示） -->
+    <div class="sites-card">
+      <h3>🔭 重点监控官网</h3>
       {sites_html}
     </div>
   </div>
 
   <div class="footer">
-    <p>由多多维护 · 每日 8:00 / 20:00 自动更新</p>
+    <p>由多多维护 · 每日 8:00 / 14:00 / 20:00 自动更新 · <a href="https://github.com/51020807-glitch/policy-dashboard" target="_blank" rel="noopener" style="color:var(--primary);">GitHub</a></p>
   </div>
+
+  <script>
+    function switchTab(tabName) {{
+      // 切换卡片激活状态
+      document.querySelectorAll('.tab-card').forEach(card => {{
+        card.classList.toggle('active', card.dataset.tab === tabName);
+      }});
+      // 切换面板显示
+      document.querySelectorAll('.panel').forEach(panel => {{
+        panel.classList.toggle('active', panel.id === 'panel-' + tabName);
+      }});
+      // 滚动到面板
+      const panel = document.getElementById('panel-' + tabName);
+      if (panel) {{
+        panel.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+      }}
+    }}
+
+    // 支持 URL hash 定位（例如 ?tab=chunyu）
+    (function() {{
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab) {{ switchTab(tab); }}
+    }})();
+  </script>
 </body>
 </html>
 """
 
 
-def build_recent_section(items: list, data: dict) -> str:
-    """构建过去 12 小时新消息区域。"""
-    if items:
-        html = '<div class="timeline">'
-        for item in items:
-            html += build_timeline_item(item)
-        html += '</div>'
-        return html
-    start = data.get("recentWindow", {}).get("start", "")
-    end = data.get("recentWindow", {}).get("end", "")
-    next_check = data.get("nextCheck", "")
-    return f"""
-    <div class="empty-state">
-      <p>过去 12 小时内（{start} - {end}）未发现相关新政策通知。</p>
-      <p style="font-size: 0.875rem; margin-top: 8px;">下次自动检查：{next_check}</p>
-    </div>
-    """
-
-
 def build_timeline_section(items: list) -> str:
     """构建时间线区域。"""
     if not items:
-        return '<div class="empty-state">暂无内容</div>'
-    html = '<div class="timeline">'
+        return ""
+    html_parts = ['<div class="timeline">']
     for item in items:
-        html += build_timeline_item(item)
-    html += '</div>'
-    return html
+        html_parts.append(build_timeline_item(item))
+    html_parts.append('</div>')
+    return ''.join(html_parts)
 
 
 def build_timeline_item(item: dict) -> str:
     """构建单个时间线条目。"""
-    tags = ''.join(f'<span class="tag">{html.escape(tag)}</span>' for tag in item.get("tags", []))
+    tags = ''.join(
+        f'<span class="tag">{html.escape(tag)}</span>'
+        for tag in item.get("tags", [])
+    )
+    link = item.get('link', '')
+    link_html = ''
+    if link:
+        link_html = f'<a class="link" href="{html.escape(link, quote=True)}" target="_blank" rel="noopener">查看原文 →</a>'
+
     return f"""
     <div class="timeline-item">
       <div class="date">{html.escape(item.get('date', ''))}</div>
       <div class="title">{html.escape(item.get('title', ''))}</div>
       <div class="meta">来源：{html.escape(item.get('source', ''))}</div>
       <div class="summary">{html.escape(item.get('summary', ''))}</div>
-      <a class="link" href="{html.escape(item.get('link', ''), quote=True)}" target="_blank" rel="noopener">查看原文 →</a>
+      {link_html}
       <div class="tags">{tags}</div>
     </div>
     """
@@ -464,9 +563,13 @@ def build_timeline_item(item: dict) -> str:
 def build_chunyu_section(items: list) -> str:
     """构建春雨行动省份卡片网格。"""
     if not items:
-        return '<div class="empty-state">暂无省份入库</div>'
+        return ""
     cards = []
     for item in items:
+        link_html = ''
+        link = item.get('link', '')
+        if link:
+            link_html = f'<a class="link" href="{html.escape(link, quote=True)}" target="_blank" rel="noopener">查看原文 →</a>'
         cards.append(f"""
         <div class="province-card">
           <div class="province-header">
@@ -475,7 +578,7 @@ def build_chunyu_section(items: list) -> str:
           </div>
           <div class="province-date">{html.escape(item.get('date', ''))}</div>
           <div class="province-summary">{html.escape(item.get('summary', ''))}</div>
-          <a class="link" href="{html.escape(item.get('link', ''), quote=True)}" target="_blank" rel="noopener">查看原文 →</a>
+          {link_html}
         </div>
         """)
     return '<div class="province-grid">' + ''.join(cards) + '</div>'
