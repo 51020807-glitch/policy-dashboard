@@ -2,19 +2,9 @@ name: 政策通知自动更新
 
 on:
   schedule:
-    # 北京时间 8:00 (UTC+8) → UTC 0:00
-    - cron: "0 0 * * *"
-    # 北京时间 14:00 (UTC+8) → UTC 6:00  (中间检查)
-    - cron: "0 6 * * *"
-    # 北京时间 20:00 (UTC+8) → UTC 12:00
-    - cron: "0 12 * * *"
-  workflow_dispatch:
-    # 允许手动触发
-
-# 确保同一时间只有一个实例在运行
-concurrency:
-  group: dashboard-update
-  cancel-in-progress: true
+    # 每12小时一次：北京时间 8:00 和 20:00
+    - cron: "0 0,12 * * *"
+  workflow_dispatch: {}
 
 jobs:
   update:
