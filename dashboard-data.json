@@ -1,12 +1,33 @@
 {
-  "lastUpdated": "2026-11-12 03:01",
-  "nextCheck": "2026-11-12 08:00",
+  "lastUpdated": "2026-11-12 12:57",
+  "nextCheck": "2026-11-12 14:00",
   "recentWindow": {
-    "start": "2026-11-11 15:01",
-    "end": "2026-11-12 03:01"
+    "start": "2026-11-12 00:57",
+    "end": "2026-11-12 12:57"
   },
-  "recentItems": [],
+  "recentItems": [
+    {
+      "date": "2026-11-12",
+      "title": "国家重点研发计划 - suda.edu.cn",
+      "source": "网络来源",
+      "summary": "Nov 3, 2026 · 首页 科研项目 国家重点研发计划 国家重点研发计划 关于组织申报国家重点研发计划“政府间国际科技创新合作”重点专 …",
+      "link": "https://scit.suda.edu.cn/gjzdyfjh/list.htm",
+      "tags": [
+        "国家重点研发计划"
+      ]
+    }
+  ],
   "allItems": [
+    {
+      "date": "2026-11-12",
+      "title": "国家重点研发计划 - suda.edu.cn",
+      "source": "网络来源",
+      "summary": "Nov 3, 2026 · 首页 科研项目 国家重点研发计划 国家重点研发计划 关于组织申报国家重点研发计划“政府间国际科技创新合作”重点专 …",
+      "link": "https://scit.suda.edu.cn/gjzdyfjh/list.htm",
+      "tags": [
+        "国家重点研发计划"
+      ]
+    },
     {
       "date": "2026-11-11",
       "title": "国家重点研发计划颠覆性技术创新重点专项2026年度项目申报指引",
